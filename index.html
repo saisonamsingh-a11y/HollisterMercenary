@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HostelMatch – Smart Student Hostel & PG Recommendation System</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for Live Real-Time Interactive Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group" id="btnLogoHome">
+        <div class="brand-logo">
+          <i data-lucide="building-2"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">HostelMatch</span>
+          <span class="brand-badge">Campus Live</span>
+        </div>
+      </div>
+
+      <!-- Quick College Selector in Header -->
+      <div class="header-college-picker">
+        <i data-lucide="graduation-cap" class="picker-icon"></i>
+        <div class="picker-content">
+          <span class="picker-label">Target College</span>
+          <select id="headerCollegeSelect" class="college-select" aria-label="Target College">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <button id="btnViewToggle" class="view-toggle-btn mobile-only" aria-label="Toggle Map/List">
+          <i data-lucide="map" id="viewToggleIcon"></i>
+          <span id="viewToggleText">Map View</span>
+        </button>
+
+        <button id="btnAdminNav" class="admin-nav-btn">
+          <i data-lucide="settings-2"></i>
+          <span>Admin Dashboard</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main id="appMain" class="app-layout">
+
+    <!-- Left / Center: Filter & Discovery Panel -->
+    <section class="discovery-section" id="discoverySection">
+      
+      <!-- Hero / Smart Match Banner -->
+      <div class="hero-banner">
+        <div class="hero-content">
+          <h1>Find Your Ideal Student Stay Around Campus</h1>
+          <p>
+            Smart 5-Factor algorithm matching your monthly budget, college commute distance, 
+            preferred room sharing, dietary preferences, and verified safety standards.
+          </p>
+        </div>
+        
+        <!-- Live Quick Stats Counter -->
+        <div class="quick-stats-row">
+          <div class="stat-pill">
+            <span class="stat-num" id="statVerifiedCount">0</span>
+            <span class="stat-label">Verified Stays</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-num" id="statAvailableCount">0</span>
+            <span class="stat-label">Available Now</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-num" id="statNearbyCount">0</span>
+            <span class="stat-label">Within 3 km</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campus Location, Address & Transit Guide Card -->
+      <div class="campus-guide-card" id="campusGuideCard">
+        <div class="campus-guide-header">
+          <div class="campus-guide-badges">
+            <span class="campus-badge-type" id="campusBadgeType"><i data-lucide="graduation-cap"></i> Autonomous Engineering College</span>
+            <span class="campus-badge-zone" id="campusBadgeZone">📍 Central & Eastern Suburbs</span>
+          </div>
+          <h2 class="campus-guide-name" id="campusGuideName">VIT - Vidyalankar Institute of Technology (Wadala East)</h2>
+          <p class="campus-guide-address" id="campusGuideAddress">
+            <i data-lucide="map-pin"></i> Vidyalankar Educational Campus, Vidyalankar College Road, Sangam Nagar, Wadala (East), Mumbai 400037
+          </p>
+          <div class="campus-guide-landmarks" id="campusGuideLandmarks">
+            <span><b>Landmarks:</b> Near Dosti Acres, Eastern Freeway Wadala Exit</span>
+          </div>
+        </div>
+
+        <!-- Campus Transit & Commute Connectivity -->
+        <div class="campus-transit-box">
+          <div class="transit-box-title">
+            <i data-lucide="navigation"></i>
+            <span>Campus Transit & Commute Connectivity</span>
+          </div>
+          <div class="transit-chips-grid" id="campusTransitGrid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="search-filter-card">
+        
+        <!-- Search row -->
+        <div class="search-input-wrapper">
+          <i data-lucide="search" class="search-icon"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search by hostel name, area, landmark, or amenities..." 
+            autocomplete="off"
+          />
+          <button id="btnClearSearch" class="btn-clear hidden" aria-label="Clear Search">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <!-- Filter Row 1: Primary Dimensions -->
+        <div class="filters-row primary-filters">
+          
+          <!-- Gender Category Filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i data-lucide="users"></i> Gender</label>
+            <div class="pill-group" id="genderFilters">
+              <button class="pill active" data-gender="all">All</button>
+              <button class="pill" data-gender="girls">Girls</button>
+              <button class="pill" data-gender="boys">Boys</button>
+              <button class="pill" data-gender="coed">Co-ed</button>
+            </div>
+          </div>
+
+          <!-- Food / Dietary Filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i data-lucide="utensils"></i> Food & Diet</label>
+            <div class="pill-group" id="foodFilters">
+              <button class="pill active" data-food="all">All</button>
+              <button class="pill" data-food="jain">Jain Available</button>
+              <button class="pill" data-food="pure_veg">Pure Veg</button>
+              <button class="pill" data-food="veg_nonveg">Veg + Non-Veg</button>
+            </div>
+          </div>
+
+          <!-- Property Category Filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i data-lucide="shield-check"></i> Stay Type</label>
+            <div class="pill-group" id="categoryFilters">
+              <button class="pill active" data-category="all">All Types</button>
+              <button class="pill" data-category="private_pg">Private PG</button>
+              <button class="pill" data-category="college_hostel">College Hostel</button>
+              <button class="pill" data-category="govt_hostel">Govt Hostel</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Filter Row 2: Budget & Room Sharing & Distance -->
+        <div class="filters-row secondary-filters">
+
+          <!-- Budget Slider -->
+          <div class="filter-slider-group">
+            <div class="slider-header">
+              <label class="filter-label"><i data-lucide="indian-rupee"></i> Max Monthly Budget</label>
+              <span class="budget-value" id="budgetValue">₹18,000 / mo</span>
+            </div>
+            <input 
+              type="range" 
+              id="budgetRange" 
+              min="3500" 
+              max="25000" 
+              step="500" 
+              value="20000"
+            />
+            <div class="slider-marks">
+              <span>₹3.5k</span>
+              <span>₹10k</span>
+              <span>₹18k</span>
+              <span>₹25k+</span>
+            </div>
+          </div>
+
+          <!-- Room Sharing Filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i data-lucide="bed-double"></i> Room Sharing</label>
+            <div class="pill-group" id="roomFilters">
+              <button class="pill active" data-room="all">Any</button>
+              <button class="pill" data-room="single">Single</button>
+              <button class="pill" data-room="double">Double</button>
+              <button class="pill" data-room="triple">Triple</button>
+              <button class="pill" data-room="dorm">4+ Dorm</button>
+            </div>
+          </div>
+
+          <!-- Availability Filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i data-lucide="check-circle-2"></i> Availability</label>
+            <div class="pill-group" id="availFilters">
+              <button class="pill active" data-avail="all">All</button>
+              <button class="pill" data-avail="available">Available Now</button>
+              <button class="pill" data-avail="fast_filling">Fast Filling</button>
+              <button class="pill" data-avail="full">Full / Waitlist</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Collapsible Amenities Filter Toggle -->
+        <div class="amenities-toggle-row">
+          <button id="btnToggleAmenities" class="btn-toggle-amenities">
+            <i data-lucide="sliders-horizontal"></i>
+            <span>Must-Have Amenities & Distance Filters</span>
+            <i data-lucide="chevron-down" id="amenitiesChevron"></i>
+          </button>
+          
+          <button id="btnResetFilters" class="btn-reset-filters">
+            <i data-lucide="rotate-ccw"></i>
+            <span>Reset All Filters</span>
+          </button>
+        </div>
+
+        <!-- Expandable Amenities Drawer -->
+        <div id="amenitiesDrawer" class="amenities-drawer collapsed">
+          <div class="amenities-grid">
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="wifi" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="wifi"></i> High-Speed WiFi</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="meals" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="soup"></i> Food / Meals Included</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="ac" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="snowflake"></i> Air Conditioning (AC)</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="study_room" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="book-open"></i> 24h Study Room / Library</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="power_backup" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="zap"></i> Power Backup / Inverter</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="security" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="shield"></i> 24/7 Security & CCTV</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="laundry" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="washing-machine"></i> Laundry & Washing Machine</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="gym" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="dumbbell"></i> Fitness Gym</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="attached_washroom" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="bath"></i> Attached Washroom</span>
+            </label>
+            <label class="amenity-checkbox">
+              <input type="checkbox" value="biometric" class="amenity-check">
+              <span class="check-box-custom"></span>
+              <span class="amenity-title"><i data-lucide="fingerprint"></i> Biometric / Guarded Entry</span>
+            </label>
+          </div>
+
+          <!-- Max Distance to Selected College -->
+          <div class="distance-filter-row">
+            <span class="distance-label"><i data-lucide="navigation"></i> Max Distance to Campus:</span>
+            <div class="pill-group" id="distanceFilters">
+              <button class="pill active" data-maxdist="999">Any Distance</button>
+              <button class="pill" data-maxdist="1.0">&lt; 1 km (Walking)</button>
+              <button class="pill" data-maxdist="2.5">&lt; 2.5 km</button>
+              <button class="pill" data-maxdist="5.0">&lt; 5 km</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results Count Bar & Sort Options -->
+      <div class="results-header-bar">
+        <div class="results-count-group">
+          <span class="results-count" id="resultsCount">Loading hostels...</span>
+          <span class="college-distance-hint" id="collegeDistanceHint"></span>
+        </div>
+        <div class="sort-group">
+          <label for="sortBySelect" class="sort-label">Sort by:</label>
+          <select id="sortBySelect" class="sort-select">
+            <option value="match">Smart 5-Factor Match</option>
+            <option value="distance_asc">Proximity (Nearest First)</option>
+            <option value="price_asc">Rent: Low to High</option>
+            <option value="price_desc">Rent: High to Low</option>
+            <option value="rating_desc">Highest Rated</option>
+            <option value="safety_desc">Safety Score</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Hostel Card Listing Container -->
+      <div class="hostels-list" id="hostelsList">
+        <!-- Rendered dynamically -->
+      </div>
+
+    </section>
+
+    <!-- Right: Real-Time Interactive Live Map Panel -->
+    <section class="map-section" id="mapSection">
+      
+      <!-- Live Map Header with Controls -->
+      <div class="map-header-overlay">
+        <div class="map-info-badge">
+          <div class="live-pulse"></div>
+          <span>Live Campus Radar</span>
+        </div>
+
+        <div class="map-control-actions">
+          <button id="btnRecenterCollege" class="map-btn" title="Center on Selected College">
+            <i data-lucide="graduation-cap"></i>
+            <span>College</span>
+          </button>
+          <button id="btnFitAllHostels" class="map-btn" title="View All Hostels">
+            <i data-lucide="expand"></i>
+            <span>Fit All</span>
+          </button>
+          <button id="btnUserLocate" class="map-btn" title="Locate My Position">
+            <i data-lucide="crosshair"></i>
+            <span>My Location</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- The Leaflet Map Canvas -->
+      <div id="liveHostelMap" class="map-canvas"></div>
+
+      <!-- Real-Time Distance & Route Info Bar (appears when a hostel is selected/hovered) -->
+      <div id="routeInfoBar" class="route-info-bar hidden">
+        <div class="route-info-content">
+          <div class="route-hostel-name" id="routeHostelName">Selected Stay</div>
+          <div class="route-metrics">
+            <span class="metric-chip"><i data-lucide="milestone"></i> <b id="routeDistance">0.0 km</b> from campus</span>
+            <span class="metric-chip"><i data-lucide="footprints"></i> <span id="routeWalkTime">0 min walk</span></span>
+            <span class="metric-chip"><i data-lucide="car"></i> <span id="routeDriveTime">0 min ride</span></span>
+          </div>
+        </div>
+        <button id="btnCloseRoute" class="btn-close-route" aria-label="Close route banner">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <!-- Map Legend -->
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot college"></span> College Campus</div>
+        <div class="legend-item"><span class="legend-dot girls"></span> Girls PG</div>
+        <div class="legend-item"><span class="legend-dot boys"></span> Boys PG</div>
+        <div class="legend-item"><span class="legend-dot coed"></span> Co-Ed / Private</div>
+        <div class="legend-item"><span class="legend-dot govt"></span> Govt / College Hostel</div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- ADMIN DASHBOARD VIEW (MODAL / FULL VIEW)      -->
+  <!-- ============================================== -->
+  <div id="adminView" class="admin-view hidden">
+    <div class="admin-topbar">
+      <div class="admin-topbar-brand">
+        <div class="brand-logo admin-logo">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div>
+          <h2>HostelMatch Admin Management</h2>
+          <p>Add, edit, verify hostel listings and track student occupancy status</p>
+        </div>
+      </div>
+      
+      <div class="admin-topbar-actions">
+        <button id="btnNewHostel" class="btn-primary">
+          <i data-lucide="plus-circle"></i>
+          <span>Add New Hostel</span>
+        </button>
+        <button id="btnResetDemoData" class="btn-secondary" title="Restore factory dataset">
+          <i data-lucide="refresh-cw"></i>
+          <span>Reset Sample Data</span>
+        </button>
+        <button id="btnCloseAdmin" class="btn-close-admin">
+          <i data-lucide="arrow-left"></i>
+          <span>Back to Search</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin Metric Overview Cards -->
+    <div class="admin-metrics-grid">
+      <div class="admin-card metric">
+        <div class="metric-icon-box blue"><i data-lucide="home"></i></div>
+        <div>
+          <span class="metric-title">Total Active Listings</span>
+          <h3 id="adminTotalListings">0</h3>
+        </div>
+      </div>
+      <div class="admin-card metric">
+        <div class="metric-icon-box green"><i data-lucide="badge-check"></i></div>
+        <div>
+          <span class="metric-title">Verified Hostels</span>
+          <h3 id="adminVerifiedListings">0</h3>
+        </div>
+      </div>
+      <div class="admin-card metric">
+        <div class="metric-icon-box orange"><i data-lucide="clock"></i></div>
+        <div>
+          <span class="metric-title">Pending Verification</span>
+          <h3 id="adminPendingListings">0</h3>
+        </div>
+      </div>
+      <div class="admin-card metric">
+        <div class="metric-icon-box purple"><i data-lucide="users"></i></div>
+        <div>
+          <span class="metric-title">Vacant Bed Capacity</span>
+          <h3 id="adminAvailableBeds">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Hostel Directory Table -->
+    <div class="admin-card table-card">
+      <div class="table-header-row">
+        <h3>Hostel & PG Directory</h3>
+        <div class="table-search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="adminTableSearch" placeholder="Filter admin directory...">
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Property Name & Address</th>
+              <th>Category</th>
+              <th>Food / Diet</th>
+              <th>Starting Rent</th>
+              <th>Status</th>
+              <th>Verification</th>
+              <th>Last Checked</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================== -->
+  <!-- HOSTEL EDITOR MODAL (ADD / EDIT)               -->
+  <!-- ============================================== -->
+  <div id="hostelEditorModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 id="editorModalTitle">Add New Hostel Listing</h3>
+          <p>Fill out full property details, room configurations, and real coordinates</p>
+        </div>
+        <button id="btnCloseEditorModal" class="btn-modal-close" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="hostelForm" class="modal-body">
+        <input type="hidden" id="formHostelId">
+
+        <div class="form-grid">
+          
+          <div class="form-field col-2">
+            <label for="formName">Property / Hostel Name *</label>
+            <input type="text" id="formName" required placeholder="e.g. Scholastic Residency & PG">
+          </div>
+
+          <div class="form-field">
+            <label for="formGender">Gender Allowed *</label>
+            <select id="formGender" required>
+              <option value="girls">Girls Only</option>
+              <option value="boys">Boys Only</option>
+              <option value="coed">Co-Ed (Independent Floors)</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="formCategory">Listing Category *</label>
+            <select id="formCategory" required>
+              <option value="private_pg">Private PG</option>
+              <option value="college_hostel">College-Affiliated Hostel</option>
+              <option value="govt_hostel">Government Student Hostel</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="formFood">Food / Meals Type *</label>
+            <select id="formFood" required>
+              <option value="pure_veg">Pure Vegetarian Only</option>
+              <option value="jain">Jain Food Available</option>
+              <option value="veg_nonveg">Vegetarian & Non-Vegetarian</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="formAvailability">Room Availability Status *</label>
+            <select id="formAvailability" required>
+              <option value="available">Available Now</option>
+              <option value="fast_filling">Fast Filling (Limited Beds)</option>
+              <option value="full">Full / Waitlist Only</option>
+            </select>
+          </div>
+
+          <div class="form-field col-2">
+            <label for="formAddress">Street Address & Landmark *</label>
+            <input type="text" id="formAddress" required placeholder="e.g. 14 University Road, Kalina, Santacruz East">
+          </div>
+
+          <div class="form-field">
+            <label for="formArea">Locality / Area *</label>
+            <input type="text" id="formArea" required placeholder="e.g. Near Campus Gate">
+          </div>
+
+          <div class="form-field">
+            <label for="formPhone">Contact Phone / WhatsApp *</label>
+            <input type="tel" id="formPhone" required placeholder="e.g. +91 9876543210">
+          </div>
+
+          <!-- Real Coordinates -->
+          <div class="form-field">
+            <label for="formLat">Latitude (e.g. 19.0720)</label>
+            <input type="number" step="any" id="formLat" required placeholder="19.0720">
+          </div>
+
+          <div class="form-field">
+            <label for="formLng">Longitude (e.g. 72.8815)</label>
+            <input type="number" step="any" id="formLng" required placeholder="72.8815">
+          </div>
+
+          <!-- Rent & Deposit Details -->
+          <div class="form-field">
+            <label for="formPrice">Starting Monthly Rent (₹) *</label>
+            <input type="number" id="formPrice" required placeholder="8500">
+          </div>
+
+          <div class="form-field">
+            <label for="formDeposit">Security Deposit (₹)</label>
+            <input type="number" id="formDeposit" placeholder="15000">
+          </div>
+
+          <!-- Room Sharing Rates -->
+          <div class="form-field">
+            <label for="formSingleRent">Single Room Rent (₹/mo)</label>
+            <input type="number" id="formSingleRent" placeholder="14000">
+          </div>
+
+          <div class="form-field">
+            <label for="formDoubleRent">Double Sharing Rent (₹/mo)</label>
+            <input type="number" id="formDoubleRent" placeholder="9000">
+          </div>
+
+          <div class="form-field">
+            <label for="formTripleRent">Triple Sharing Rent (₹/mo)</label>
+            <input type="number" id="formTripleRent" placeholder="7500">
+          </div>
+
+          <div class="form-field">
+            <label for="formDormRent">4-Bed Dorm Rent (₹/mo)</label>
+            <input type="number" id="formDormRent" placeholder="5500">
+          </div>
+
+          <div class="form-field">
+            <label for="formRating">Rating (1.0 to 5.0)</label>
+            <input type="number" step="0.1" min="1" max="5" id="formRating" value="4.5">
+          </div>
+
+          <div class="form-field">
+            <label for="formSafety">Safety Score (1.0 to 5.0)</label>
+            <input type="number" step="0.1" min="1" max="5" id="formSafety" value="4.8">
+          </div>
+
+          <div class="form-field col-2">
+            <label for="formCoverImage">Cover Image URL</label>
+            <input type="url" id="formCoverImage" placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="form-field col-2">
+            <label for="formAbout">Description & House Rules</label>
+            <textarea id="formAbout" rows="3" placeholder="Provide description, curfew times, visitor guidelines, meal routine..."></textarea>
+          </div>
+
+          <!-- Verification Toggle & Date -->
+          <div class="form-field">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="formVerified">
+              <span>Mark as Verified Listing</span>
+            </label>
+          </div>
+
+          <div class="form-field">
+            <label for="formVerificationDate">Last Verified Date</label>
+            <input type="date" id="formVerificationDate">
+          </div>
+
+        </div>
+
+        <!-- Amenities Checkboxes in Form -->
+        <div class="form-amenities-section">
+          <label class="form-section-label">Included Amenities & Facilities</label>
+          <div class="form-amenities-grid">
+            <label><input type="checkbox" name="formAmenity" value="wifi"> WiFi</label>
+            <label><input type="checkbox" name="formAmenity" value="meals"> Meals / Mess</label>
+            <label><input type="checkbox" name="formAmenity" value="ac"> Air Conditioning</label>
+            <label><input type="checkbox" name="formAmenity" value="study_room"> Study Room</label>
+            <label><input type="checkbox" name="formAmenity" value="power_backup"> Power Backup</label>
+            <label><input type="checkbox" name="formAmenity" value="security"> 24h Security</label>
+            <label><input type="checkbox" name="formAmenity" value="laundry"> Laundry</label>
+            <label><input type="checkbox" name="formAmenity" value="gym"> Gym</label>
+            <label><input type="checkbox" name="formAmenity" value="attached_washroom"> Attached Washroom</label>
+            <label><input type="checkbox" name="formAmenity" value="biometric"> Biometric Access</label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelEditor" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Listing</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- HOSTEL DETAIL DRAWER / MODAL                   -->
+  <!-- ============================================== -->
+  <div id="hostelDetailModal" class="modal-backdrop hidden">
+    <div class="modal-dialog detail-dialog">
+      <div class="modal-header detail-header">
+        <div class="detail-title-block">
+          <div class="detail-category-badges" id="detailCategoryBadges"></div>
+          <h2 id="detailName">Hostel Name</h2>
+          <p id="detailAddress" class="detail-address-text"><i data-lucide="map-pin"></i> 123 Campus Lane</p>
+        </div>
+        <button id="btnCloseDetailModal" class="btn-modal-close" aria-label="Close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body detail-body" id="detailBodyContent">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
